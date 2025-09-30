@@ -67,36 +67,6 @@
 
 import { length, number, z } from 'zod';
 
-/**
- * Total space
- * 10^6
- * 10^5 * (26)
- * 10^4 * (26 ^ 2)
- * 10^3 * (26 ^ 3)
- * 10^2 * (26 ^ 4)
- * 10^1 * (26 ^ 5)
- * 10^0 * 26 ^ 5
- */
-
-// 999_999
-// 99_999 * (26)
-// 9_999 * (26 ^ 2)
-// 999 * (26 ^ 3)
-// 99 * (26 ^ 4)
-// 9 * (26 ^ 5)
-// 26 ^ 6
-
-// 26
-// AA
-// AB
-// AC
-// AD
-// ...
-// AZ
-
-// 26
-// AB
-
 const boundaries = [
   {
     numericPower: 6,
@@ -128,54 +98,87 @@ const boundaries = [
   },
 ] as const;
 
+// could compute this very simply for arbitrary length output, keeping it explicit to help me visualize the problem
+
 type Boundary = (typeof boundaries)[number];
 
-const calculateFactorOfNumericValue = (numericPower: number) => Math.pow(10, numericPower);
-const calculateFactorOfAlphabeticValue = (letterPower: number) => Math.pow(26, letterPower);
-
-const calculateMaxAmountAtBoundary = ({ numericPower, letterPower }: Boundary) =>
-  calculateFactorOfNumericValue(numericPower) * calculateFactorOfAlphabeticValue(letterPower);
-
-const MAXIMUM_INDEX = boundaries.reduce(
-  (p, boundary) => (p += calculateMaxAmountAtBoundary(boundary)),
-  0
-);
-
-const validInputSchema = z.number().min(0).max(MAXIMUM_INDEX);
+const arrayOfSize = (size: number, fillWith?: string) => {
+  try {
+    return Array(size).fill(fillWith ?? null);
+  } catch (err) {
+    throw new Error(`invalid array range ${size}`, { cause: err });
+  }
+};
 
 const log = (message: string, meta: any) => {
   console.log(message, JSON.stringify(meta, null, 2));
 };
 
+const calculateFactorOfNumericValue = (numericPower: number) => Math.pow(10, numericPower);
+const calculateFactorOfAlphabeticValue = (letterPower: number) => Math.pow(26, letterPower);
+
+const calculateNumberOfEntriesAtBoundary = ({ numericPower, letterPower }: Boundary) =>
+  calculateFactorOfNumericValue(numericPower) * calculateFactorOfAlphabeticValue(letterPower);
+
+const calculateEndpointOfBoundary = (boundaryIndex: number) =>
+  boundaries
+    .slice(0, boundaryIndex + 1)
+    .reduce((p, boundary) => (p += calculateNumberOfEntriesAtBoundary(boundary)), 0);
+
 const indexToLetter = (i: number): string => {
-  if (i < 0 || i > 25) throw new RangeError('Index must be 0–25');
+  if (i < 0 || i > 25) throw new RangeError(`Index must be 0–25, got: ${i}`);
   return String.fromCharCode(65 + i); // 65 = 'A'
+};
+
+const MAXIMUM_INDEX = calculateEndpointOfBoundary(boundaries.length);
+console.log(MAXIMUM_INDEX);
+
+const validInputSchema = z.number().min(0).max(MAXIMUM_INDEX);
+
+const generateAlphabeticPortion = ({
+  indexOffset,
+  numberOfLetters,
+  modFactor,
+}: {
+  indexOffset: number;
+  numberOfLetters: number;
+  modFactor: number;
+}) => {
+  // TODO: we don't actually need to store these in memory it can be done in place
+  const rangesForEachLetterValue = arrayOfSize(numberOfLetters).map((_, letterIndex) => {
+    return arrayOfSize(26).map((_, i) => {
+      const modFactorForNumericIndex = calculateFactorOfNumericValue(letterIndex) * modFactor;
+      const modFactorForLetterIndex = calculateFactorOfAlphabeticValue(letterIndex);
+      return (i + 1) * modFactorForNumericIndex * modFactorForLetterIndex;
+    });
+  });
+
+  log('ranges for letter value', rangesForEachLetterValue);
+
+  const lettersFromRanges = arrayOfSize(numberOfLetters)
+    .map((_, i) => {
+      const rangesForIndex = rangesForEachLetterValue[i];
+      const moddedIndexOffset = indexOffset % calculateFactorOfAlphabeticValue(i);
+      const indexOfLetterInRangeForCharacter = rangesForIndex.findIndex(
+        (rangeValue) => moddedIndexOffset < rangeValue
+      );
+      console.log('from ranges info?', {
+        indexOffset,
+        indexOfLetterInRangeForCharacter,
+      });
+      return indexToLetter(indexOfLetterInRangeForCharacter);
+    })
+    .reverse()
+    .join('');
+
+  return lettersFromRanges;
 };
 
 const numberToStringWithLeadingZeroes = (value: number, lengthOfOutput: number) => {
   const numberOfDigits = value.toString().length;
-  console.log('number to string info', {
-    value,
-    lengthOfOutput,
-    numberOfDigits,
-  });
-  const leadingZeroes = Array(lengthOfOutput - numberOfDigits).fill('0');
+
+  const leadingZeroes = arrayOfSize(lengthOfOutput - numberOfDigits, '0');
   return leadingZeroes.join('') + value.toString();
-};
-
-const generateAlphabeticPortion = ({
-  maxOfBoundary,
-  letterPower,
-  indexOffset,
-}: {
-  maxOfBoundary: number;
-  letterPower: number;
-  indexOffset: number;
-}) => {
-  const modFactor = maxOfBoundary / calculateFactorOfAlphabeticValue(letterPower);
-  const letterOffset = Math.floor(indexOffset / modFactor);
-
-  const letterValue = indexToLetter(letterOffset);
 };
 
 export const getLicensePlateNumberInSequence = (index: number) => {
@@ -185,50 +188,96 @@ export const getLicensePlateNumberInSequence = (index: number) => {
   }
   const { data: validIndex } = validIndexParseResult;
 
-  const boundaryIndex = boundaries.findIndex(
-    (boundary) => validIndex < calculateMaxAmountAtBoundary(boundary)
-  );
-
+  const boundaryIndex = boundaries.findIndex((_, i) => validIndex < calculateEndpointOfBoundary(i));
+  // log('boundaryindex', { boundaryIndex });
   if (boundaryIndex === 0) {
     return index.toString();
   }
 
-  const prevBoundary = boundaries[boundaryIndex - 1];
-  const maxOfPrevBoundary = calculateMaxAmountAtBoundary(prevBoundary);
+  const maxOfPrevBoundary = calculateEndpointOfBoundary(boundaryIndex - 1);
   const boundary = boundaries[boundaryIndex];
-  const maxOfBoundary = calculateMaxAmountAtBoundary(boundary);
-  const indexOffset = index - calculateMaxAmountAtBoundary(prevBoundary);
+  const maxOfBoundary = calculateEndpointOfBoundary(boundaryIndex);
+
+  const indexOffset = index - calculateEndpointOfBoundary(boundaryIndex - 1);
   const numberOfOptionsInBoundary = maxOfBoundary - maxOfPrevBoundary;
 
-  const modFactor = maxOfBoundary / calculateFactorOfAlphabeticValue(boundary.letterPower);
-  const letterOffset = Math.floor(indexOffset / modFactor);
-
-  const letterValue = indexToLetter(letterOffset);
-  const numericValueOffset = modFactor * letterOffset;
-  const numericValue = indexOffset - numericValueOffset;
+  // this should be 100,000
+  const modFactor =
+    numberOfOptionsInBoundary / calculateFactorOfAlphabeticValue(boundary.letterPower);
 
   log('boundary info', {
-    prevBoundary,
     indexOffset,
     boundary,
     maxOfBoundary,
+    maxOfPrevBoundary,
     modFactor,
-    letterOffset,
-    letterValue,
     numberOfOptionsInBoundary,
-    numericValueOffset,
-    numericValue,
   });
 
-  return `${numberToStringWithLeadingZeroes(numericValue, boundary.numericPower)}${letterValue}`;
+  const letterValue = generateAlphabeticPortion({
+    indexOffset,
+    numberOfLetters: boundary.letterPower,
+    modFactor,
+  });
+
+  const numericValue = indexOffset % modFactor;
+  const numericValueWithLeadingZeros = numberToStringWithLeadingZeroes(
+    numericValue,
+    boundary.numericPower
+  );
+
+  return `${numericValueWithLeadingZeros}${letterValue}`;
 };
 
-// the values between 1_000_000 -> 2_600_000 have one letter
-// are 1_600_000 values with one letter
-// how many have letter A? 100,000 of them
-// 00_000A -> 99_999A
-//
+// log(getLicensePlateNumberInSequence(999_999), { expected: '999999' });
 
-// console.log(getLicensePlateNumberInSequence(999_999));
-console.log(getLicensePlateNumberInSequence(2_600_000));
-// 1_600_000
+const checkOutput = (actual: string, { expected }: { expected: string }) => {
+  if (actual !== expected) {
+    log('❌ incorrect result', { expected, actual });
+    return;
+  }
+  log('✅ success', { actual, expected });
+};
+
+// checkOutput(getLicensePlateNumberInSequence(999_999), { expected: '999999' });
+// checkOutput(getLicensePlateNumberInSequence(1_000_000), { expected: '00000A' });
+// checkOutput(getLicensePlateNumberInSequence(1_099_999), { expected: '99999A' });
+
+// checkOutput(getLicensePlateNumberInSequence(1_100_000), { expected: '00000B' });
+// checkOutput(getLicensePlateNumberInSequence(1_199_999), { expected: '99999B' });
+// checkOutput(getLicensePlateNumberInSequence(1_200_000), { expected: '00000C' });
+// checkOutput(getLicensePlateNumberInSequence(1_300_000), { expected: '00000D' });
+// checkOutput(getLicensePlateNumberInSequence(1_400_000), { expected: '00000E' });
+// checkOutput(getLicensePlateNumberInSequence(1_500_000), { expected: '00000F' });
+// checkOutput(getLicensePlateNumberInSequence(1_600_000), { expected: '00000G' });
+// checkOutput(getLicensePlateNumberInSequence(1_700_000), { expected: '00000H' });
+// checkOutput(getLicensePlateNumberInSequence(1_800_000), { expected: '00000I' });
+// checkOutput(getLicensePlateNumberInSequence(1_900_000), { expected: '00000J' });
+// checkOutput(getLicensePlateNumberInSequence(2_000_000), { expected: '00000K' });
+// checkOutput(getLicensePlateNumberInSequence(2_100_000), { expected: '00000L' });
+// checkOutput(getLicensePlateNumberInSequence(2_200_000), { expected: '00000M' });
+// checkOutput(getLicensePlateNumberInSequence(2_300_000), { expected: '00000N' });
+// checkOutput(getLicensePlateNumberInSequence(2_400_000), { expected: '00000O' });
+// checkOutput(getLicensePlateNumberInSequence(2_500_000), { expected: '00000P' });
+// checkOutput(getLicensePlateNumberInSequence(2_500_000), { expected: '00000P' });
+// checkOutput(getLicensePlateNumberInSequence(2_600_000), { expected: '00000Q' });
+// checkOutput(getLicensePlateNumberInSequence(2_700_000), { expected: '00000R' });
+// checkOutput(getLicensePlateNumberInSequence(2_800_000), { expected: '00000S' });
+// checkOutput(getLicensePlateNumberInSequence(2_900_000), { expected: '00000T' });
+// checkOutput(getLicensePlateNumberInSequence(3_000_000), { expected: '00000U' });
+// checkOutput(getLicensePlateNumberInSequence(3_100_000), { expected: '00000V' });
+// checkOutput(getLicensePlateNumberInSequence(3_200_000), { expected: '00000W' });
+// checkOutput(getLicensePlateNumberInSequence(3_300_000), { expected: '00000X' });
+// checkOutput(getLicensePlateNumberInSequence(3_400_000), { expected: '00000Y' });
+// checkOutput(getLicensePlateNumberInSequence(3_500_000), { expected: '00000Z' });
+// checkOutput(getLicensePlateNumberInSequence(3_599_999), { expected: '99999Z' });
+
+// last letter is every 10_000
+// second to last letter is every 260,000
+// checkOutput(getLicensePlateNumberInSequence(3_600_000), { expected: '0000AA' });
+// checkOutput(getLicensePlateNumberInSequence(3_609_999), { expected: '9999AA' });
+// checkOutput(getLicensePlateNumberInSequence(3_610_000), { expected: '0000AB' });
+// checkOutput(getLicensePlateNumberInSequence(3_810_001), { expected: '0000AB' });
+// checkOutput(getLicensePlateNumberInSequence(100_810_001), { expected: '0000AB' });
+// TODO: does not work when everything is a letter :(
+checkOutput(getLicensePlateNumberInSequence(501363135), { expected: 'ZZZZZZ' });
