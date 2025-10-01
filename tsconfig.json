@@ -4,8 +4,8 @@
     "lib": ["ES2022"],
     "rootDir": ".",
     "esModuleInterop": true,
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
     "resolveJsonModule": true,
     "declaration": true,
     "noImplicitAny": true,
@@ -22,7 +22,6 @@
     "types": ["node"]
   },
   "ts-node": {
-    "esm": true,
     "transpileOnly": true
   }
 }
