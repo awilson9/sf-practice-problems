@@ -1,7 +1,7 @@
 import { log } from '../utils/log';
 import { getLicensePlateNumberInSequence } from './get-license-plate-in-sequence';
 
-const inputs = [0];
+const inputs = [0, 999, 100_000, 500_000, 10_000];
 
 void (async () => {
   try {

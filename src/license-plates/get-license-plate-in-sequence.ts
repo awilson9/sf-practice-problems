@@ -117,10 +117,10 @@ export const getLicensePlateNumberInSequence = (index: number) => {
       numberOfOptionsInBoundary / calculateFactorOfAlphabeticValue(boundary.letterPower);
 
     const numericValue = indexOffset % modFactor;
-    const numericValueWithLeadingZeros = numberToStringWithLeadingZeroes(
-      numericValue,
-      boundary.numericPower
-    );
+    const numericValueWithLeadingZeros =
+      boundary.numericPower === 0
+        ? ''
+        : numberToStringWithLeadingZeroes(numericValue, boundary.numericPower);
 
     if (boundary.letterPower === 0) {
       return numericValueWithLeadingZeros;
