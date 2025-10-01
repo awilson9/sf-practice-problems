@@ -3,6 +3,9 @@ import { arrayOfSize } from '../../utils/arrays';
 
 export const numberToStringWithLeadingZeroes = (value: number, lengthOfOutput: number) => {
   const numberOfDigits = value.toString().length;
+  if (lengthOfOutput <= numberOfDigits) {
+    return value.toString();
+  }
   const leadingZeroes = arrayOfSize(lengthOfOutput - numberOfDigits, '0');
   return leadingZeroes.join('') + value.toString();
 };

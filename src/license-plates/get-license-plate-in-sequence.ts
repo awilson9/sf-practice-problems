@@ -86,12 +86,12 @@ const validInputSchema = z
   .refine((n) => Number.isInteger(n));
 
 /**
- * Fundamentally, calculating the letter portions of the sequence is a conversion from base 10 (number of digits)
- * to base 26 (number of letters)
+ * Generating the numeric portion of the license plate happens by determining the number of digits that should
+ * be included based on the ranges of indexes that map to a number of numbers, then modding that by 10^number of numbers
  *
- * After the conversion, we decide how much of the result stays in base 10, and how much of the result stays in base 26
- * which is done by subtracting the given index from the number of possible options with the number of digits
- * corresponding to the index which is calculated in `boundaries`
+ * Fundamentally, calculating the letter portions of the sequence is a conversion from base 10 (number of digits)
+ * to base 26 (number of letters) of the leftover portion after converting the numeric part.
+ *
  */
 export const getLicensePlateNumberInSequence = (index: number) => {
   try {
@@ -109,6 +109,7 @@ export const getLicensePlateNumberInSequence = (index: number) => {
     const boundary = boundaries[boundaryIndex];
     const maxOfBoundary = calculateEndpointOfBoundary(boundaryIndex);
 
+    // index offset is where this index is in a given slice of values that corresponds to the number of numeric characters that will be in the output
     const indexOffset = index - calculateEndpointOfBoundary(boundaryIndex - 1);
     const numberOfOptionsInBoundary = maxOfBoundary - maxOfPrevBoundary;
 
