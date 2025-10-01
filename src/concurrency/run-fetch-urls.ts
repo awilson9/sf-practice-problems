@@ -11,7 +11,7 @@ const urls = [
 
 void (async () => {
   try {
-    const results = await conccurentlyFetchUrls(urls);
+    const results = await conccurentlyFetchUrls(urls, 1);
     log('successfully fetched', { results }, true);
   } catch (err) {
     log('failed to fetch', { message: err.message }, true);

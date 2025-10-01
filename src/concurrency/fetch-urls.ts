@@ -96,6 +96,7 @@ const safeFetchWithTimeout = async <T = unknown>(url: URL, timeoutMs = 15_000) =
         result: 'error',
         status: response.status,
         data: responseAsJsonOrString,
+        url,
       } as const;
       log(
         'Failed to fetch',
@@ -112,6 +113,7 @@ const safeFetchWithTimeout = async <T = unknown>(url: URL, timeoutMs = 15_000) =
       result: 'success',
       status: response.status,
       data: responseAsJsonOrString as T,
+      url,
     } as const;
     log('Successfully fetched result', successResult);
     return successResult;
