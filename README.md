@@ -1,10 +1,11 @@
 # SF practice problems
 
 Contains implementation of 2 practice problems, generating license plate numbers
-and concurrently fetching urls. Problem statements are located in the main test
-problem files
+and concurrently fetching urls. Problem statements are located in the
+implemented files problem files
 
-- `src/concurrency
+- `src/concurrency/fetch-urls.ts`
+- `src/license-plates/get-license-plate-in-sequence.ts`
 
 This repo uses `pnpm` as it's package manager.
 
