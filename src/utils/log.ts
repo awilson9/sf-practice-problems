@@ -1,4 +1,5 @@
-const shouldLog = false;
+const shouldLog = process.env.LOG_EVERYTHING === 'true';
+
 export const log = (message: string, meta: any, override = shouldLog) => {
   if (!override) {
     return;

@@ -11,7 +11,7 @@ import { z } from 'zod';
 
 async function concurrentMap<U, T>(
   inputs: T[],
-  func: (arg0: T, index: number, array: T[]) => U | PromiseLike<U>,
+  func: (arg0: T) => U | PromiseLike<U>,
   MAX_CONCURRENCY = 10
 ): Promise<U[]> {
   let index = 0;
@@ -30,7 +30,7 @@ async function concurrentMap<U, T>(
       });
 
       // Use of `currIndex` is important because `index` may change after await is resolved
-      results[currIndex] = await func(input, currIndex, inputs);
+      results[currIndex] = await func(input);
       log('completed async operation in thread', {
         threadNumber,
         currIndex,
@@ -69,8 +69,12 @@ const safeFetchWithTimeout = async <T = unknown>(url: URL, timeoutMs = 15_000) =
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
+  const DefaultFetchOptions = {
+    signal: controller.signal,
+  };
+
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, DefaultFetchOptions);
     const rawResponseData = await (async () => {
       try {
         return await response.text();
@@ -111,6 +115,9 @@ const safeFetchWithTimeout = async <T = unknown>(url: URL, timeoutMs = 15_000) =
     } as const;
     log('Successfully fetched result', successResult);
     return successResult;
+  } catch (err) {
+    console.error(err);
+    throw err;
   } finally {
     clearTimeout(timeout);
   }

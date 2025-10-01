@@ -2,9 +2,10 @@
   "name": "sf-practice-problems",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "license-plate": "ts-node -r dotenv/config --esm src/license-plates/run-get-license-plate-in-sequence.ts",
+    "concurrently-fetch": "ts-node -r dotenv/config --esm src/concurrency/run-fetch-urls.ts"
   },
   "keywords": [],
   "author": "",
@@ -31,6 +32,7 @@
     "typescript-eslint": "^8.45.0"
   },
   "dependencies": {
+    "dotenv": "^17.2.3",
     "zod": "^4.1.11"
   }
 }

@@ -104,10 +104,6 @@ export const getLicensePlateNumberInSequence = (index: number) => {
     const boundaryIndex = boundaries.findIndex(
       (_, i) => validIndex < calculateEndpointOfBoundary(i)
     );
-    log('boundaryindex', { boundaryIndex });
-    if (boundaryIndex === 0) {
-      return index.toString();
-    }
 
     const maxOfPrevBoundary = calculateEndpointOfBoundary(boundaryIndex - 1);
     const boundary = boundaries[boundaryIndex];
@@ -119,6 +115,16 @@ export const getLicensePlateNumberInSequence = (index: number) => {
     // this should be 100_000, 10_000, 1_000, 100, 10, 1 per boundary
     const modFactor =
       numberOfOptionsInBoundary / calculateFactorOfAlphabeticValue(boundary.letterPower);
+
+    const numericValue = indexOffset % modFactor;
+    const numericValueWithLeadingZeros = numberToStringWithLeadingZeroes(
+      numericValue,
+      boundary.numericPower
+    );
+
+    if (boundary.letterPower === 0) {
+      return numericValueWithLeadingZeros;
+    }
 
     // represents the number of times the digits in the numericValue have cycled
     const letterPortionOfIndex = Math.floor(indexOffset / modFactor);
@@ -142,12 +148,6 @@ export const getLicensePlateNumberInSequence = (index: number) => {
     if (boundary.numericPower === 0) {
       return paddedLetterValue;
     }
-
-    const numericValue = indexOffset % modFactor;
-    const numericValueWithLeadingZeros = numberToStringWithLeadingZeroes(
-      numericValue,
-      boundary.numericPower
-    );
 
     return `${numericValueWithLeadingZeros}${paddedLetterValue}`;
   } catch (err) {
