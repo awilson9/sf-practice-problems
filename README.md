@@ -28,10 +28,10 @@ values
 - License plate function
   - `pnpm license-plate`
   - the inputs are defined in
-    `src/license-plates/run-get-license-plate-in-sequence.ts`,
+    `src/license-plates/run-get-license-plate-in-sequence.ts`
 - Concurrency function
   - `pnpm concurrently-fetch`
-  - the inputs are defined in `src/concurrency/run-fetch-urls.ts`,
+  - the inputs are defined in `src/concurrency/run-fetch-urls.ts`
 
 ## Unit tests
 
